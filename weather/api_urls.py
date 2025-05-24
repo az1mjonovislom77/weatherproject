@@ -6,5 +6,5 @@ app_name = 'weather_api'
 urlpatterns = [
     path('weather/', WeatherAPIView.as_view(), name='weather'),
     path('history/', UserSearchHistoryList.as_view(), name='search-history'),
-    path('stats/', CityStatsList.as_view(), name='city-stats'),
+    path('stats/', CityStatsList.as_view(), name='stats'),
 ]

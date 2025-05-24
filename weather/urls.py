@@ -6,5 +6,5 @@ app_name = 'weather'
 urlpatterns = [
     path('', views.index, name='index'),
     path('autocomplete/', views.city_autocomplete, name='city-autocomplete'),
-    path('api/stats/', views.search_stats_api, name='search-stats-api'),
+    path('stats/', views.search_stats_api, name='search-stats-api'),
 ]
