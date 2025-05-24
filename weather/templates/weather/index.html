@@ -88,7 +88,7 @@
             return;
         }
 
-        fetch(`/api/city-autocomplete/?query=${query}`)
+        fetch(`/autocomplete/?query=${query}`)
             .then(res => res.json())
             .then(data => {
                 suggestions.innerHTML = '';

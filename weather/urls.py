@@ -1,10 +1,10 @@
 from django.urls import path
-from . import views
+from .views import WeatherView, CityAutocompleteView, SearchStatsAPIView
 
-app_name = 'weather'
+app_name = "weather"
 
 urlpatterns = [
-    path('', views.index, name='index'),
-    path('autocomplete/', views.city_autocomplete, name='city-autocomplete'),
-    path('stats/', views.search_stats_api, name='search-stats-api'),
+    path('', WeatherView.as_view(), name='index'),
+    path('autocomplete/', CityAutocompleteView.as_view(), name='autocomplete'),
+    path('stats/', SearchStatsAPIView.as_view(), name='stats'),
 ]

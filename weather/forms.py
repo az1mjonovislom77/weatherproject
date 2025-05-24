@@ -6,6 +6,6 @@ class CityForm(forms.Form):
         widget=forms.TextInput(attrs={
             'placeholder': 'Name of city',
             'class': 'form-control',
-            'autocomplete': 'on'
+            'id': 'id_city',
         })
     )
