@@ -25,7 +25,7 @@ def get_weather_description(code):
     return descriptions.get(code, "Неизвестно")
 
 def city_autocomplete(request):
-    q = request.GET.get('query','')
+    q = request.GET.get('query', '')
     if not q:
         return JsonResponse([], safe=False)
     url = f"https://geocoding-api.open-meteo.com/v1/search?name={q}&count=5"
@@ -37,69 +37,73 @@ def city_autocomplete(request):
     return JsonResponse(suggestions, safe=False)
 
 def index(request):
+    form = CityForm(request.POST or None)
     weather_data = None
-    searched_city = None
     error = None
+    searched_city = None
+    last_city = request.COOKIES.get("last_city")
+    if request.method == "GET" and request.GET.get('last'):
+        last_city = request.GET['last']
 
-    if request.method == "GET" and request.COOKIES.get("last_city"):
-        searched_city = request.COOKIES["last_city"]
-        lat, lon = get_coordinates(searched_city)
-        if lat and lon:
-            api = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current_weather=true&hourly=temperature_2m,weathercode,relativehumidity_2m,pressure_msl,windspeed_10m,winddirection_10m,cloudcover,precipitation,snowfall&timezone=auto"
-            d = requests.get(api).json()
-            cw = d.get("current_weather",{})
-            hr = d.get("hourly",{})
+    if last_city and not request.POST:
+        searched_city = last_city
+        lat, lon = get_coordinates(last_city)
+        if lat is not None:
+            api = (
+                f"https://api.open-meteo.com/v1/forecast?"
+                f"latitude={lat}&longitude={lon}&current_weather=true&"
+                f"hourly=temperature_2m,weathercode,relativehumidity_2m,"
+                f"pressure_msl,windspeed_10m,winddirection_10m,cloudcover,"
+                f"precipitation,snowfall&timezone=auto"
+            )
+            data = requests.get(api).json()
+            cw = data.get("current_weather", {})
+            hr = data.get("hourly", {})
             cw.update({
-                'humidity': hr.get("relativehumidity_2m",[None])[0],
-                'pressure': hr.get("pressure_msl",[None])[0],
-                'cloudcover': hr.get("cloudcover",[None])[0],
-                'precipitation': hr.get("precipitation",[None])[0],
-                'snowfall': hr.get("snowfall",[None])[0],
+                'humidity': hr.get("relativehumidity_2m", [None])[0],
+                'pressure': hr.get("pressure_msl", [None])[0],
+                'cloudcover': hr.get("cloudcover", [None])[0],
+                'precipitation': hr.get("precipitation", [None])[0],
+                'snowfall': hr.get("snowfall", [None])[0],
                 'description': get_weather_description(cw.get('weathercode'))
             })
             weather_data = cw
 
-    if request.method == "POST":
-        form = CityForm(request.POST)
-        if form.is_valid():
-            city = form.cleaned_data['city']
-            searched_city = city
+    if request.method == "POST" and form.is_valid():
+        city = form.cleaned_data['city']
+        searched_city = city
+        lat, lon = get_coordinates(city)
+        if lat is None:
+            error = "Город не найден"
+        else:
+            api = (
+                f"https://api.open-meteo.com/v1/forecast?"
+                f"latitude={lat}&longitude={lon}&current_weather=true&"
+                f"hourly=temperature_2m,weathercode,relativehumidity_2m,"
+                f"pressure_msl,windspeed_10m,winddirection_10m,cloudcover,"
+                f"precipitation,snowfall&timezone=auto"
+            )
+            try:
+                data = requests.get(api).json()
+                cw = data.get("current_weather", {})
+                hr = data.get("hourly", {})
+                cw.update({
+                    'humidity': hr.get("relativehumidity_2m", [None])[0],
+                    'pressure': hr.get("pressure_msl", [None])[0],
+                    'cloudcover': hr.get("cloudcover", [None])[0],
+                    'precipitation': hr.get("precipitation", [None])[0],
+                    'snowfall': hr.get("snowfall", [None])[0],
+                    'description': get_weather_description(cw.get('weathercode'))
+                })
+                weather_data = cw
+            except Exception:
+                error = "Ошибка подключения к API погоды"
 
-            lat, lon = get_coordinates(city)
-            if lat is None or lon is None:
-                error = "Город не найден"
-            else:
-                api = (
-                    f"https://api.open-meteo.com/v1/forecast?"
-                    f"latitude={lat}&longitude={lon}&current_weather=true&"
-                    f"hourly=temperature_2m,weathercode,relativehumidity_2m,"
-                    f"pressure_msl,windspeed_10m,winddirection_10m,cloudcover,"
-                    f"precipitation,snowfall&timezone=auto"
-                )
-                try:
-                    d = requests.get(api).json()
-                    cw = d.get("current_weather",{})
-                    hr = d.get("hourly",{})
-                    cw.update({
-                        'humidity': hr.get("relativehumidity_2m",[None])[0],
-                        'pressure': hr.get("pressure_msl",[None])[0],
-                        'cloudcover': hr.get("cloudcover",[None])[0],
-                        'precipitation': hr.get("precipitation",[None])[0],
-                        'snowfall': hr.get("snowfall",[None])[0],
-                        'description': get_weather_description(cw.get('weathercode'))
-                    })
-                    weather_data = cw
-                except Exception:
-                    error = "Ошибка подключения к API погоды"
-
-            if request.user.is_authenticated:
-                SearchHistory.objects.create(user=request.user, city=city)
-            cs, _ = CityStats.objects.get_or_create(city=city)
-            cs.search_count += 1
-            cs.save()
-
-    else:
-        form = CityForm()
+        if request.user.is_authenticated:
+            SearchHistory.objects.create(user=request.user, city=city)
+        cs, _ = CityStats.objects.get_or_create(city=city)
+        cs.search_count += 1
+        cs.save()
 
     history = None
     if request.user.is_authenticated:
@@ -110,8 +114,13 @@ def index(request):
         "weather": weather_data,
         "searched_city": searched_city,
         "history": history,
-        "error": error
+        "error": error,
+        "last_city": last_city,
     })
     if searched_city:
         resp.set_cookie("last_city", searched_city, max_age=7*24*3600)
     return resp
+
+def search_stats_api(request):
+    stats = CityStats.objects.values('city', 'search_count').order_by('-search_count')
+    return JsonResponse(list(stats), safe=False)

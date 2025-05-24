@@ -25,6 +25,7 @@ class CustomLoginView(LoginView):
 
 class CustomLogoutView(LogoutView):
     next_page = reverse_lazy('users:login')
+    http_method_names = ['get', 'post']
 
     def dispatch(self, request, *args, **kwargs):
         messages.success(request, 'You have been logged out.')

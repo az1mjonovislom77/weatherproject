@@ -69,14 +69,12 @@ class WeatherAPIView(APIView):
             response = requests.get(api_url)
             data = response.json()
             current_weather = data.get("current_weather", {})
-
             hourly = data.get("hourly", {})
             current_weather['humidity'] = hourly.get("relativehumidity_2m", [None])[0]
             current_weather['pressure'] = hourly.get("pressure_msl", [None])[0]
             current_weather['cloudcover'] = hourly.get("cloudcover", [None])[0]
             current_weather['precipitation'] = hourly.get("precipitation", [None])[0]
             current_weather['snowfall'] = hourly.get("snowfall", [None])[0]
-
             current_weather['description'] = get_weather_description(current_weather.get('weathercode'))
 
         except Exception:
@@ -99,11 +97,10 @@ class WeatherAPIView(APIView):
 class UserSearchHistoryList(generics.ListAPIView):
     serializer_class = SearchHistorySerializer
     permission_classes = [permissions.IsAuthenticated]
-
     def get_queryset(self):
         return SearchHistory.objects.filter(user=self.request.user).order_by('-searched_at')
 
 class CityStatsList(generics.ListAPIView):
-    queryset = CityStats.objects.all()
+    queryset = CityStats.objects.all().order_by('-search_count')
     serializer_class = CityStatsSerializer
     permission_classes = [permissions.AllowAny]
