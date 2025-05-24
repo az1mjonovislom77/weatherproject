@@ -25,12 +25,16 @@
 
 ## Используемые технологии
 
-- Python 3.10+
-- Django 5.x
-- Requests (внешние HTTP-запросы)
-- Bootstrap 5 (Frontend)
-- PostgreSQL
-- Docker & Docker Compose
+- Python — основной язык программирования
+- Django — веб-фреймворк для создания серверной части
+- Django REST Framework (djangorestframework) — для создания API
+- drf-yasg — генерация документации API (Swagger/OpenAPI)
+- Requests, requests-cache, retry-requests — для HTTP-запросов и кеширования
+- numpy, pandas — для обработки и анализа данных
+- Docker & Docker Compose — для контейнеризации и удобного запуска приложения
+- GitHub Actions — для автоматического тестирования и CI/CD
+- HTML, Bootstrap, CSS (Фронтенд)
+- AJAX (JavaScript) — динамическое взаимодействие клиента с сервером
 
 ---
 
