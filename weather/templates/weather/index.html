@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Weather</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        #suggestions {
+            border: 1px solid #ccc;
+            max-height: 150px;
+            overflow-y: auto;
+            position: absolute;
+            background: white;
+            z-index: 1000;
+            width: 100%;
+        }
+        #suggestions li {
+            padding: 5px;
+            cursor: pointer;
+        }
+        #suggestions li:hover {
+            background: #eee;
+        }
+    </style>
+</head>
+<body class="container mt-5">
+<h1 class="mb-4">Weather Info</h1>
+
+<form method="POST" autocomplete="off" class="position-relative">
+    {% csrf_token %}
+    {{ form.city }}
+    <ul id="suggestions" class="list-unstyled"></ul>
+    <button type="submit" class="btn btn-primary mt-2">Search</button>
+</form>
+
+{% if user.is_authenticated %}
+  <p>Welcome, {{ user.username }}!</p>
+  <a href="{% url 'users:logout' %}" class="btn btn-danger">Logout</a>
+{% else %}
+  <a href="{% url 'users:login' %}" class="btn btn-primary">Login</a>
+  <a href="{% url 'users:register' %}" class="btn btn-secondary">Register</a>
+{% endif %}
+
+{% if error %}
+<div class="alert alert-danger mt-3">{{ error }}</div>
+{% endif %}
+
+{% if searched_city %}
+<h3 class="mt-4">Город: {{ searched_city }}</h3>
+
+{% if weather %}
+<ul class="list-group">
+    <li class="list-group-item">Погода: {{ weather.description }}</li>
+    <li class="list-group-item">Температура: {{ weather.temperature }} °C</li>
+    <li class="list-group-item">Скорость ветра: {{ weather.windspeed }} км/ч</li>
+    <li class="list-group-item">Направление ветра: {{ weather.winddirection }}°</li>
+    <li class="list-group-item">Влажность: {{ weather.humidity }}%</li>
+    <li class="list-group-item">Давление: {{ weather.pressure }} гПа</li>
+    <li class="list-group-item">Облачность: {{ weather.cloudcover }}%</li>
+    <li class="list-group-item">Осадки: {{ weather.precipitation }} мм</li>
+    <li class="list-group-item">Снегопад: {{ weather.snowfall }} мм</li>
+</ul>
+{% else %}
+<p class="text-warning mt-2">Weather info not found.</p>
+{% endif %}
+{% endif %}
+
+{% if history %}
+<h4 class="mt-5">Ваша история поиска:</h4>
+<ul class="list-group">
+    {% for item in history %}
+    <li class="list-group-item d-flex justify-content-between align-items-center">
+        {{ item.city }}
+        <small class="text-muted">{{ item.searched_at|date:"d.m.Y H:i" }}</small>
+    </li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+<script>
+    const input = document.getElementById("id_city");
+    const suggestions = document.getElementById("suggestions");
+
+    input.addEventListener("input", function() {
+        const query = this.value;
+        if (query.length < 2) {
+            suggestions.innerHTML = '';
+            return;
+        }
+
+        fetch(`/api/city-autocomplete/?query=${query}`)
+            .then(res => res.json())
+            .then(data => {
+                suggestions.innerHTML = '';
+                data.forEach(city => {
+                    const li = document.createElement("li");
+                    li.textContent = city;
+                    li.onclick = () => {
+                        input.value = city;
+                        suggestions.innerHTML = '';
+                    };
+                    suggestions.appendChild(li);
+                });
+            });
+    });
+
+    document.addEventListener("click", function(e) {
+        if (!input.contains(e.target)) {
+            suggestions.innerHTML = '';
+        }
+    });
+</script>
+</body>
+</html>
